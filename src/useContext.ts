@@ -35,7 +35,7 @@ const parents = new WeakMap<Context, Context>();
 /**
  * Holds all the mockable functions
  */
-const mockables = new WeakMap<Function, Hook<any, unknown>>();
+const mockables = new WeakMap<Function, Hook<[], MockedHook<any, any>>>();
 
 /**
  * Get the states associated with the specified initializer
@@ -247,16 +247,16 @@ export const anchor = <A extends unknown[], R>(
 export const mockable = <A extends unknown[], R>(
   func: (context: Context, ...args: A) => R
 ): ((context: Context, ...args: A) => R) => {
-  const mocking: Hook<[], MockedHook<A, R>> =
+  const mockableFunc: Hook<[], MockedHook<A, R>> =
     () =>
-    (_originalHook, context, ...args) =>
-      func(context, ...args);
+    (originalHook, ...args) =>
+      originalHook(...args);
 
   const result: (context: Context, ...args: A) => R = (context, ...args) => {
-    return call(context, mocking)(func, context, ...args);
+    return call(context, mockableFunc)(func, context, ...args);
   };
 
-  mockables.set(result, mocking);
+  mockables.set(result, mockableFunc);
   return result;
 };
 
@@ -268,13 +268,17 @@ export const mock = <A extends unknown[], R>(
   func: Hook<A, R>,
   mocking: MockedHook<A, R>
 ) => {
-  const mockableFunc = mockables.get(func);
+  const mockableFunc = mockables.get(func) as Hook<[], MockedHook<A, R>>;
 
   if (!mockableFunc) {
     throw new Error("The function does not support mocking");
   }
 
-  set(context, mockableFunc, mocking);
+  const previousMock = call(context, mockableFunc);
+
+  set(context, mockableFunc, (originalHook, ...args) => {
+    return mocking((...a) => previousMock(originalHook, ...a), ...args);
+  });
 };
 
 /**

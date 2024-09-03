@@ -228,6 +228,30 @@ describe("useContext hook tests", () => {
     expect(stateB.counter).to.equal(8);
   });
 
+  it("multiple mocking test", () => {
+    const context = {};
+
+    const hookA = mockable((_, counter: number) => ({ counter }));
+
+    const stateA = hookA(context, 4);
+    expect(stateA.counter).to.equal(4);
+
+    mock(context, hookA, (originalHook, ctx, counter) => ({
+      counter: originalHook(ctx, counter).counter + 5,
+    }));
+
+    mock(context, hookA, (originalHook, ctx, counter) => ({
+      counter: originalHook(ctx, counter).counter + 10,
+    }));
+
+    mock(context, hookA, (originalHook, ctx, counter) => ({
+      counter: originalHook(ctx, counter).counter + 2,
+    }));
+
+    const stateB = hookA(context, 3);
+    expect(stateB.counter).to.equal(20);
+  });
+
   it("mocking not supported", () => {
     const context = {};
 
