@@ -6,7 +6,10 @@ import {
   clone,
   factory,
   fork,
+  hook,
   isContext,
+  mock,
+  mockable,
   use,
   useContext,
   util,
@@ -207,5 +210,29 @@ describe("useContext hook tests", () => {
 
     const stateB = await hookA(context);
     expect(stateB.counter).to.equal(8);
+  });
+
+  it("mocking test", () => {
+    const context = {};
+
+    const hookA = mockable((_, counter?: number) => ({ counter }));
+
+    const stateA = hookA(context, 4);
+    expect(stateA.counter).to.equal(4);
+
+    mock(context, hookA, { counter: 5 });
+
+    const stateB = hookA(context, 3);
+    expect(stateB.counter).to.equal(5);
+  });
+
+  it("mocking not supported", () => {
+    const context = {};
+
+    const hookA = hook((_, counter?: number) => ({ counter }));
+
+    expect(() => {
+      mock(context, hookA, { counter: 5 });
+    }).to.throw("The function does not support mocking");
   });
 });

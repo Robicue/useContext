@@ -1,6 +1,6 @@
 {
   "name": "@robicue/use-context",
-  "version": "1.0.25",
+  "version": "1.0.26",
   "description": "The official useContext implementation for the Robicue Hook Architecture",
   "main": "dist/index.js",
   "scripts": {

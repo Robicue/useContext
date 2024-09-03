@@ -24,6 +24,11 @@ const contexts = new WeakMap<Context, States>();
 const parents = new WeakMap<Context, Context>();
 
 /**
+ * Holds all the mockable functions
+ */
+const mockables = new WeakMap<Function, Hook<any, unknown>>();
+
+/**
  * Get the states associated with the specified initializer
  */
 const getStates = <A extends unknown[], R>(
@@ -70,12 +75,12 @@ export const isUsed = <A extends unknown[], R>(
 };
 
 /**
- * Initializes a new state into the context
+ * Set a new state into the context
  */
-export const init = <A extends unknown[], R>(
+export const set = <A extends unknown[], R>(
   context: Context,
   initializer: Hook<A, R>,
-  ...args: A
+  state: R
 ) => {
   let states = contexts.get(context);
 
@@ -84,9 +89,20 @@ export const init = <A extends unknown[], R>(
     contexts.set(context, states);
   }
 
-  const value = initializer(context, ...args);
-  states.set(initializer, value);
-  return value;
+  states.set(initializer, state);
+  return state;
+};
+
+/**
+ * Initializes a new state into the context
+ */
+export const init = <A extends unknown[], R>(
+  context: Context,
+  initializer: Hook<A, R>,
+  ...args: A
+) => {
+  const state = initializer(context, ...args);
+  return set(context, initializer, state);
 };
 
 /**
@@ -100,6 +116,21 @@ export const use = <A extends unknown[], R>(
   const states = getStates(context, initializer);
   if (!states) {
     return init(context, initializer, ...args);
+  }
+  return states.get(initializer) as R;
+};
+
+/**
+ * Calls the initializer or gets a state in the context
+ */
+export const call = <A extends unknown[], R>(
+  context: Context,
+  initializer: Hook<A, R>,
+  ...args: A
+) => {
+  const states = getStates(context, initializer);
+  if (!states) {
+    return initializer(context, ...args);
   }
   return states.get(initializer) as R;
 };
@@ -202,6 +233,36 @@ export const anchor = <A extends unknown[], R>(
 };
 
 /**
+ * Creates a hook that memorizes the result in the context (if mocked)
+ */
+export const mockable = <A extends unknown[], R>(
+  func: (context: Context, ...args: A) => R
+): ((context: Context, ...args: A) => R) => {
+  const result: (context: Context, ...args: A) => R = (context, ...args) => {
+    return call(context, func, ...args);
+  };
+  mockables.set(result, func);
+  return result;
+};
+
+/**
+ * Mocks the result of a mockable hook
+ */
+export const mock = <A extends unknown[], R>(
+  context: Context,
+  func: (context: Context, ...args: A) => R,
+  state: R
+) => {
+  const mockableFunc = mockables.get(func);
+
+  if (!mockableFunc) {
+    throw new Error("The function does not support mocking");
+  }
+
+  set(context, mockableFunc, state);
+};
+
+/**
  * Creates a utility hook that memorizes the result of the context.
  * The context is optional here. If not provided, the specified
  * function itself will be used as context.
@@ -247,6 +308,13 @@ export const useContext = (context: Context = {}) => {
     },
 
     /**
+     * Sets a new state into the context
+     */
+    set<A extends unknown[], R>(initializer: Hook<A, R>, state: R) {
+      return set(context, initializer, state);
+    },
+
+    /**
      * Initializes a new state into the context
      */
     init<A extends unknown[], R>(initializer: Hook<A, R>, ...args: A) {
@@ -265,6 +333,13 @@ export const useContext = (context: Context = {}) => {
      */
     get<A extends unknown[], R>(initializer: Hook<A, R>) {
       return get(context, initializer);
+    },
+
+    /**
+     * Mocks the result of a mockable hook
+     */
+    mock<A extends unknown[], R>(initializer: Hook<A, R>, state: R) {
+      return mock(context, initializer, state);
     },
 
     /**
