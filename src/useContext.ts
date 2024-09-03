@@ -14,6 +14,15 @@ export type States = Map<Hook<any, unknown>, unknown>;
 export type Hook<A extends unknown[], R> = (context: Context, ...args: A) => R;
 
 /**
+ * A simple hook type
+ */
+export type MockedHook<A extends unknown[], R> = (
+  originalHook: Hook<A, R>,
+  context: Context,
+  ...args: A
+) => R;
+
+/**
  * Holds all the context states
  */
 const contexts = new WeakMap<Context, States>();
@@ -238,10 +247,16 @@ export const anchor = <A extends unknown[], R>(
 export const mockable = <A extends unknown[], R>(
   func: (context: Context, ...args: A) => R
 ): ((context: Context, ...args: A) => R) => {
+  const mocking: Hook<[], MockedHook<A, R>> =
+    () =>
+    (_originalHook, context, ...args) =>
+      func(context, ...args);
+
   const result: (context: Context, ...args: A) => R = (context, ...args) => {
-    return call(context, func, ...args);
+    return call(context, mocking)(func, context, ...args);
   };
-  mockables.set(result, func);
+
+  mockables.set(result, mocking);
   return result;
 };
 
@@ -250,8 +265,8 @@ export const mockable = <A extends unknown[], R>(
  */
 export const mock = <A extends unknown[], R>(
   context: Context,
-  func: (context: Context, ...args: A) => R,
-  state: R
+  func: Hook<A, R>,
+  mocking: MockedHook<A, R>
 ) => {
   const mockableFunc = mockables.get(func);
 
@@ -259,7 +274,7 @@ export const mock = <A extends unknown[], R>(
     throw new Error("The function does not support mocking");
   }
 
-  set(context, mockableFunc, state);
+  set(context, mockableFunc, mocking);
 };
 
 /**
@@ -338,8 +353,11 @@ export const useContext = (context: Context = {}) => {
     /**
      * Mocks the result of a mockable hook
      */
-    mock<A extends unknown[], R>(initializer: Hook<A, R>, state: R) {
-      return mock(context, initializer, state);
+    mock<A extends unknown[], R>(
+      initializer: Hook<A, R>,
+      mocking: MockedHook<A, R>
+    ) {
+      return mock(context, initializer, mocking);
     },
 
     /**

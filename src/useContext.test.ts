@@ -215,15 +215,17 @@ describe("useContext hook tests", () => {
   it("mocking test", () => {
     const context = {};
 
-    const hookA = mockable((_, counter?: number) => ({ counter }));
+    const hookA = mockable((_, counter: number) => ({ counter }));
 
     const stateA = hookA(context, 4);
     expect(stateA.counter).to.equal(4);
 
-    mock(context, hookA, { counter: 5 });
+    mock(context, hookA, (originalHook, ctx, counter) => ({
+      counter: originalHook(ctx, counter).counter + 5,
+    }));
 
     const stateB = hookA(context, 3);
-    expect(stateB.counter).to.equal(5);
+    expect(stateB.counter).to.equal(8);
   });
 
   it("mocking not supported", () => {
@@ -232,7 +234,7 @@ describe("useContext hook tests", () => {
     const hookA = hook((_, counter?: number) => ({ counter }));
 
     expect(() => {
-      mock(context, hookA, { counter: 5 });
+      mock(context, hookA, () => ({ counter: 5 }));
     }).to.throw("The function does not support mocking");
   });
 });
