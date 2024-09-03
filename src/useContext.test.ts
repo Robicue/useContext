@@ -8,8 +8,8 @@ import {
   fork,
   hook,
   isContext,
-  mock,
-  mockable,
+  extend,
+  extendable,
   use,
   useContext,
   util,
@@ -212,15 +212,15 @@ describe("useContext hook tests", () => {
     expect(stateB.counter).to.equal(8);
   });
 
-  it("mocking test", () => {
+  it("extension test", () => {
     const context = {};
 
-    const hookA = mockable((_, counter: number) => ({ counter }));
+    const hookA = extendable((_, counter: number) => ({ counter }));
 
     const stateA = hookA(context, 4);
     expect(stateA.counter).to.equal(4);
 
-    mock(context, hookA, (originalHook, ctx, counter) => ({
+    extend(context, hookA, (originalHook, ctx, counter) => ({
       counter: originalHook(ctx, counter).counter + 5,
     }));
 
@@ -228,23 +228,23 @@ describe("useContext hook tests", () => {
     expect(stateB.counter).to.equal(8);
   });
 
-  it("multiple mocking test", () => {
+  it("multiple extensions test", () => {
     const context = {};
 
-    const hookA = mockable((_, counter: number) => ({ counter }));
+    const hookA = extendable((_, counter: number) => ({ counter }));
 
     const stateA = hookA(context, 4);
     expect(stateA.counter).to.equal(4);
 
-    mock(context, hookA, (originalHook, ctx, counter) => ({
+    extend(context, hookA, (originalHook, ctx, counter) => ({
       counter: originalHook(ctx, counter).counter + 5,
     }));
 
-    mock(context, hookA, (originalHook, ctx, counter) => ({
+    extend(context, hookA, (originalHook, ctx, counter) => ({
       counter: originalHook(ctx, counter).counter + 10,
     }));
 
-    mock(context, hookA, (originalHook, ctx, counter) => ({
+    extend(context, hookA, (originalHook, ctx, counter) => ({
       counter: originalHook(ctx, counter).counter + 2,
     }));
 
@@ -252,13 +252,13 @@ describe("useContext hook tests", () => {
     expect(stateB.counter).to.equal(20);
   });
 
-  it("mocking not supported", () => {
+  it("extending not supported", () => {
     const context = {};
 
     const hookA = hook((_, counter?: number) => ({ counter }));
 
     expect(() => {
-      mock(context, hookA, () => ({ counter: 5 }));
-    }).to.throw("The function does not support mocking");
+      extend(context, hookA, () => ({ counter: 5 }));
+    }).to.throw("The hook does not support extensions");
   });
 });

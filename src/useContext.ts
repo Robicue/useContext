@@ -14,9 +14,9 @@ export type States = Map<Hook<any, unknown>, unknown>;
 export type Hook<A extends unknown[], R> = (context: Context, ...args: A) => R;
 
 /**
- * A simple hook type
+ * An extendable hook type
  */
-export type MockedHook<A extends unknown[], R> = (
+export type ExtendedHook<A extends unknown[], R> = (
   originalHook: Hook<A, R>,
   context: Context,
   ...args: A
@@ -33,9 +33,9 @@ const contexts = new WeakMap<Context, States>();
 const parents = new WeakMap<Context, Context>();
 
 /**
- * Holds all the mockable functions
+ * Holds all the extendable hook functions
  */
-const mockables = new WeakMap<Function, Hook<[], MockedHook<any, any>>>();
+const extendables = new WeakMap<Function, Hook<[], ExtendedHook<any, any>>>();
 
 /**
  * Get the states associated with the specified initializer
@@ -242,42 +242,42 @@ export const anchor = <A extends unknown[], R>(
 };
 
 /**
- * Creates a hook that memorizes the result in the context (if mocked)
+ * Creates a hook that can be extended
  */
-export const mockable = <A extends unknown[], R>(
+export const extendable = <A extends unknown[], R>(
   func: (context: Context, ...args: A) => R
 ): ((context: Context, ...args: A) => R) => {
-  const mockableFunc: Hook<[], MockedHook<A, R>> =
+  const extendableFunc: Hook<[], ExtendedHook<A, R>> =
     () =>
     (originalHook, ...args) =>
       originalHook(...args);
 
   const result: (context: Context, ...args: A) => R = (context, ...args) => {
-    return call(context, mockableFunc)(func, context, ...args);
+    return call(context, extendableFunc)(func, context, ...args);
   };
 
-  mockables.set(result, mockableFunc);
+  extendables.set(result, extendableFunc);
   return result;
 };
 
 /**
- * Mocks the result of a mockable hook
+ * Extends a hook within a certain context
  */
-export const mock = <A extends unknown[], R>(
+export const extend = <A extends unknown[], R>(
   context: Context,
   func: Hook<A, R>,
-  mocking: MockedHook<A, R>
+  extension: ExtendedHook<A, R>
 ) => {
-  const mockableFunc = mockables.get(func) as Hook<[], MockedHook<A, R>>;
+  const extendableFunc = extendables.get(func) as Hook<[], ExtendedHook<A, R>>;
 
-  if (!mockableFunc) {
-    throw new Error("The function does not support mocking");
+  if (!extendableFunc) {
+    throw new Error("The hook does not support extensions");
   }
 
-  const previousMock = call(context, mockableFunc);
+  const previousHook = call(context, extendableFunc);
 
-  set(context, mockableFunc, (originalHook, ...args) => {
-    return mocking((...a) => previousMock(originalHook, ...a), ...args);
+  set(context, extendableFunc, (originalHook, ...args) => {
+    return extension((...a) => previousHook(originalHook, ...a), ...args);
   });
 };
 
@@ -355,13 +355,13 @@ export const useContext = (context: Context = {}) => {
     },
 
     /**
-     * Mocks the result of a mockable hook
+     * Extends a hook within a certain context
      */
-    mock<A extends unknown[], R>(
+    extend<A extends unknown[], R>(
       initializer: Hook<A, R>,
-      mocking: MockedHook<A, R>
+      extension: ExtendedHook<A, R>
     ) {
-      return mock(context, initializer, mocking);
+      return extend(context, initializer, extension);
     },
 
     /**
