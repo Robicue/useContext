@@ -164,7 +164,10 @@ export const get = <A extends unknown[], R>(
  * of the current context, but newly initialized states, created
  * in the forked context, are not seen by hooks using the current context.
  */
-export const fork = (context: Context, forkedContext: Context = {}) => {
+export const fork = <T extends Context>(
+  context: Context,
+  forkedContext: T = {} as T
+): T => {
   if (context === forkedContext) {
     throw new Error(
       "The parent context and the forked context cannot be the same"
