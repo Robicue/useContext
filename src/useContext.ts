@@ -11,7 +11,7 @@ export type States = Map<Hook<any, unknown, any>, any>;
 /**
  * A simple hook type
  */
-export type Hook<A extends unknown[], R, C extends Context> = (
+export type Hook<A extends unknown[], R, C extends Context = Context> = (
   context: C,
   ...args: A
 ) => R;
@@ -19,11 +19,11 @@ export type Hook<A extends unknown[], R, C extends Context> = (
 /**
  * An extendable hook type
  */
-export type ExtendedHook<A extends unknown[], R, C extends Context> = (
-  originalHook: Hook<A, R, C>,
-  context: C,
-  ...args: A
-) => R;
+export type ExtendedHook<
+  A extends unknown[],
+  R,
+  C extends Context = Context
+> = (originalHook: Hook<A, R, C>, context: C, ...args: A) => R;
 
 /**
  * Holds all the context states
@@ -46,7 +46,7 @@ const extendables = new WeakMap<
 /**
  * Get the states associated with the specified initializer
  */
-const getStates = <A extends unknown[], R, C extends Context>(
+const getStates = <A extends unknown[], R, C extends Context = Context>(
   context: Context,
   initializer: Hook<A, R, C>
 ): States | undefined => {
@@ -82,7 +82,7 @@ export const isForked = (context: Context) => {
 /**
  * Returns TRUE if the specified initializer is used in the context
  */
-export const isUsed = <A extends unknown[], R, C extends Context>(
+export const isUsed = <A extends unknown[], R, C extends Context = Context>(
   context: C,
   initializer: Hook<A, R, C>
 ) => {
@@ -92,7 +92,7 @@ export const isUsed = <A extends unknown[], R, C extends Context>(
 /**
  * Set a new state into the context
  */
-export const set = <A extends unknown[], R, C extends Context>(
+export const set = <A extends unknown[], R, C extends Context = Context>(
   context: C,
   initializer: Hook<A, R, C>,
   state: R
@@ -111,7 +111,7 @@ export const set = <A extends unknown[], R, C extends Context>(
 /**
  * Initializes a new state into the context
  */
-export const init = <A extends unknown[], R, C extends Context>(
+export const init = <A extends unknown[], R, C extends Context = Context>(
   context: C,
   initializer: Hook<A, R, C>,
   ...args: A
@@ -123,7 +123,7 @@ export const init = <A extends unknown[], R, C extends Context>(
 /**
  * Uses or initializes a state in the context
  */
-export const use = <A extends unknown[], R, C extends Context>(
+export const use = <A extends unknown[], R, C extends Context = Context>(
   context: C,
   initializer: Hook<A, R, C>,
   ...args: A
@@ -138,7 +138,7 @@ export const use = <A extends unknown[], R, C extends Context>(
 /**
  * Calls the initializer or gets a state in the context
  */
-export const call = <A extends unknown[], R, C extends Context>(
+export const call = <A extends unknown[], R, C extends Context = Context>(
   context: C,
   initializer: Hook<A, R, C>,
   ...args: A
@@ -153,7 +153,7 @@ export const call = <A extends unknown[], R, C extends Context>(
 /**
  * Gets a state that has already been initialized
  */
-export const get = <A extends unknown[], R, C extends Context>(
+export const get = <A extends unknown[], R, C extends Context = Context>(
   context: C,
   initializer: Hook<A, R, C>
 ) => {
@@ -170,7 +170,7 @@ export const get = <A extends unknown[], R, C extends Context>(
  * of the current context, but newly initialized states, created
  * in the forked context, are not seen by hooks using the current context.
  */
-export const fork = <C extends Context>(
+export const fork = <C extends Context = Context>(
   context: Context,
   forkedContext: C = {} as C
 ): C => {
@@ -197,7 +197,11 @@ export const fork = <C extends Context>(
 /**
  * Checks if the state of an initializer is inherited form a parent context
  */
-export const isInherited = <A extends unknown[], R, C extends Context>(
+export const isInherited = <
+  A extends unknown[],
+  R,
+  C extends Context = Context
+>(
   context: Context,
   initializer: Hook<A, R, C>
 ) => {
@@ -213,7 +217,7 @@ export const isInherited = <A extends unknown[], R, C extends Context>(
 /**
  * Creates a hook function
  */
-export const hook = <A extends unknown[], R, C extends Context>(
+export const hook = <A extends unknown[], R, C extends Context = Context>(
   func: (context: C, ...args: A) => R
 ): ((context: C, ...args: A) => R) => {
   return func;
@@ -222,7 +226,7 @@ export const hook = <A extends unknown[], R, C extends Context>(
 /**
  * Creates a clone of a hook function.
  */
-export const clone = <A extends unknown[], R, C extends Context>(
+export const clone = <A extends unknown[], R, C extends Context = Context>(
   func: (context: C, ...args: A) => R
 ): ((context: C, ...args: A) => R) => {
   return (context, ...args) => {
@@ -233,7 +237,7 @@ export const clone = <A extends unknown[], R, C extends Context>(
 /**
  * Creates an anchor hook factory
  */
-export const factory = <A extends unknown[], R, C extends Context>(
+export const factory = <A extends unknown[], R, C extends Context = Context>(
   func: (context: C, ...args: A) => R
 ): (() => (context: C, ...args: A) => R) => {
   return () => anchor(clone(func));
@@ -242,7 +246,7 @@ export const factory = <A extends unknown[], R, C extends Context>(
 /**
  * Creates a hook that memorizes the result in the context
  */
-export const anchor = <A extends unknown[], R, C extends Context>(
+export const anchor = <A extends unknown[], R, C extends Context = Context>(
   func: (context: C, ...args: A) => R
 ): ((context: C, ...args: A) => R) => {
   return (context, ...args) => {
@@ -253,7 +257,7 @@ export const anchor = <A extends unknown[], R, C extends Context>(
 /**
  * Creates a hook that can be extended
  */
-export const extendable = <A extends unknown[], R, C extends Context>(
+export const extendable = <A extends unknown[], R, C extends Context = Context>(
   func: (context: C, ...args: A) => R
 ): ((context: C, ...args: A) => R) => {
   const extendableFunc: Hook<[], ExtendedHook<A, R, C>, C> =
@@ -272,7 +276,7 @@ export const extendable = <A extends unknown[], R, C extends Context>(
 /**
  * Extends a hook within a certain context
  */
-export const extend = <A extends unknown[], R, C extends Context>(
+export const extend = <A extends unknown[], R, C extends Context = Context>(
   context: C,
   func: Hook<A, R, C>,
   extension: ExtendedHook<A, R, C>
@@ -310,7 +314,7 @@ export const util = <A extends unknown[], R>(
 /**
  * Creates an hook that memorizes the result in the unforkable context
  */
-export const buoy = <A extends unknown[], R, C extends Context>(
+export const buoy = <A extends unknown[], R, C extends Context = Context>(
   func: (context: C, ...args: A) => R
 ): ((context: C, ...args: A) => R) => {
   return (context, ...args) => {
@@ -328,7 +332,9 @@ export const buoy = <A extends unknown[], R, C extends Context>(
  * - create a fork of a context
  * - get or initialize a contextual state
  */
-export const useContext = <C extends Context>(context: C = {} as C) => {
+export const useContext = <C extends Context = Context>(
+  context: C = {} as C
+) => {
   return {
     context,
 
