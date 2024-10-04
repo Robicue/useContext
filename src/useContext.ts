@@ -6,19 +6,22 @@ export type Context = object;
 /**
  * The states holder type
  */
-export type States = Map<Hook<any, unknown>, unknown>;
+export type States = Map<Hook<any, unknown, any>, any>;
 
 /**
  * A simple hook type
  */
-export type Hook<A extends unknown[], R> = (context: Context, ...args: A) => R;
+export type Hook<A extends unknown[], R, C extends Context> = (
+  context: C,
+  ...args: A
+) => R;
 
 /**
  * An extendable hook type
  */
-export type ExtendedHook<A extends unknown[], R> = (
-  originalHook: Hook<A, R>,
-  context: Context,
+export type ExtendedHook<A extends unknown[], R, C extends Context> = (
+  originalHook: Hook<A, R, C>,
+  context: C,
   ...args: A
 ) => R;
 
@@ -35,14 +38,17 @@ const parents = new WeakMap<Context, Context>();
 /**
  * Holds all the extendable hook functions
  */
-const extendables = new WeakMap<Function, Hook<[], ExtendedHook<any, any>>>();
+const extendables = new WeakMap<
+  Function,
+  Hook<[], ExtendedHook<any, any, any>, any>
+>();
 
 /**
  * Get the states associated with the specified initializer
  */
-const getStates = <A extends unknown[], R>(
+const getStates = <A extends unknown[], R, C extends Context>(
   context: Context,
-  initializer: Hook<A, R>
+  initializer: Hook<A, R, C>
 ): States | undefined => {
   const states = contexts.get(context);
 
@@ -76,9 +82,9 @@ export const isForked = (context: Context) => {
 /**
  * Returns TRUE if the specified initializer is used in the context
  */
-export const isUsed = <A extends unknown[], R>(
-  context: Context,
-  initializer: Hook<A, R>
+export const isUsed = <A extends unknown[], R, C extends Context>(
+  context: C,
+  initializer: Hook<A, R, C>
 ) => {
   return !!getStates(context, initializer);
 };
@@ -86,9 +92,9 @@ export const isUsed = <A extends unknown[], R>(
 /**
  * Set a new state into the context
  */
-export const set = <A extends unknown[], R>(
-  context: Context,
-  initializer: Hook<A, R>,
+export const set = <A extends unknown[], R, C extends Context>(
+  context: C,
+  initializer: Hook<A, R, C>,
   state: R
 ) => {
   let states = contexts.get(context);
@@ -105,9 +111,9 @@ export const set = <A extends unknown[], R>(
 /**
  * Initializes a new state into the context
  */
-export const init = <A extends unknown[], R>(
-  context: Context,
-  initializer: Hook<A, R>,
+export const init = <A extends unknown[], R, C extends Context>(
+  context: C,
+  initializer: Hook<A, R, C>,
   ...args: A
 ) => {
   const state = initializer(context, ...args);
@@ -117,9 +123,9 @@ export const init = <A extends unknown[], R>(
 /**
  * Uses or initializes a state in the context
  */
-export const use = <A extends unknown[], R>(
-  context: Context,
-  initializer: Hook<A, R>,
+export const use = <A extends unknown[], R, C extends Context>(
+  context: C,
+  initializer: Hook<A, R, C>,
   ...args: A
 ) => {
   const states = getStates(context, initializer);
@@ -132,9 +138,9 @@ export const use = <A extends unknown[], R>(
 /**
  * Calls the initializer or gets a state in the context
  */
-export const call = <A extends unknown[], R>(
-  context: Context,
-  initializer: Hook<A, R>,
+export const call = <A extends unknown[], R, C extends Context>(
+  context: C,
+  initializer: Hook<A, R, C>,
   ...args: A
 ) => {
   const states = getStates(context, initializer);
@@ -147,9 +153,9 @@ export const call = <A extends unknown[], R>(
 /**
  * Gets a state that has already been initialized
  */
-export const get = <A extends unknown[], R>(
-  context: Context,
-  initializer: Hook<A, R>
+export const get = <A extends unknown[], R, C extends Context>(
+  context: C,
+  initializer: Hook<A, R, C>
 ) => {
   const states = getStates(context, initializer);
   if (!states) {
@@ -164,10 +170,10 @@ export const get = <A extends unknown[], R>(
  * of the current context, but newly initialized states, created
  * in the forked context, are not seen by hooks using the current context.
  */
-export const fork = <T extends Context>(
+export const fork = <C extends Context>(
   context: Context,
-  forkedContext: T = {} as T
-): T => {
+  forkedContext: C = {} as C
+): C => {
   if (context === forkedContext) {
     throw new Error(
       "The parent context and the forked context cannot be the same"
@@ -191,9 +197,9 @@ export const fork = <T extends Context>(
 /**
  * Checks if the state of an initializer is inherited form a parent context
  */
-export const isInherited = <A extends unknown[], R>(
+export const isInherited = <A extends unknown[], R, C extends Context>(
   context: Context,
-  initializer: Hook<A, R>
+  initializer: Hook<A, R, C>
 ) => {
   const states = getStates(context, initializer);
 
@@ -207,18 +213,18 @@ export const isInherited = <A extends unknown[], R>(
 /**
  * Creates a hook function
  */
-export const hook = <A extends unknown[], R>(
-  func: (context: Context, ...args: A) => R
-): ((context: Context, ...args: A) => R) => {
+export const hook = <A extends unknown[], R, C extends Context>(
+  func: (context: C, ...args: A) => R
+): ((context: C, ...args: A) => R) => {
   return func;
 };
 
 /**
  * Creates a clone of a hook function.
  */
-export const clone = <A extends unknown[], R>(
-  func: (context: Context, ...args: A) => R
-): ((context: Context, ...args: A) => R) => {
+export const clone = <A extends unknown[], R, C extends Context>(
+  func: (context: C, ...args: A) => R
+): ((context: C, ...args: A) => R) => {
   return (context, ...args) => {
     return func(context, ...args);
   };
@@ -227,18 +233,18 @@ export const clone = <A extends unknown[], R>(
 /**
  * Creates an anchor hook factory
  */
-export const factory = <A extends unknown[], R>(
-  func: (context: Context, ...args: A) => R
-): (() => (context: Context, ...args: A) => R) => {
+export const factory = <A extends unknown[], R, C extends Context>(
+  func: (context: C, ...args: A) => R
+): (() => (context: C, ...args: A) => R) => {
   return () => anchor(clone(func));
 };
 
 /**
  * Creates a hook that memorizes the result in the context
  */
-export const anchor = <A extends unknown[], R>(
-  func: (context: Context, ...args: A) => R
-): ((context: Context, ...args: A) => R) => {
+export const anchor = <A extends unknown[], R, C extends Context>(
+  func: (context: C, ...args: A) => R
+): ((context: C, ...args: A) => R) => {
   return (context, ...args) => {
     return use(context, func, ...args);
   };
@@ -247,15 +253,15 @@ export const anchor = <A extends unknown[], R>(
 /**
  * Creates a hook that can be extended
  */
-export const extendable = <A extends unknown[], R>(
-  func: (context: Context, ...args: A) => R
-): ((context: Context, ...args: A) => R) => {
-  const extendableFunc: Hook<[], ExtendedHook<A, R>> =
+export const extendable = <A extends unknown[], R, C extends Context>(
+  func: (context: C, ...args: A) => R
+): ((context: C, ...args: A) => R) => {
+  const extendableFunc: Hook<[], ExtendedHook<A, R, C>, C> =
     () =>
     (originalHook, ...args) =>
       originalHook(...args);
 
-  const result: (context: Context, ...args: A) => R = (context, ...args) => {
+  const result: (context: C, ...args: A) => R = (context, ...args) => {
     return call(context, extendableFunc)(func, context, ...args);
   };
 
@@ -266,12 +272,16 @@ export const extendable = <A extends unknown[], R>(
 /**
  * Extends a hook within a certain context
  */
-export const extend = <A extends unknown[], R>(
-  context: Context,
-  func: Hook<A, R>,
-  extension: ExtendedHook<A, R>
+export const extend = <A extends unknown[], R, C extends Context>(
+  context: C,
+  func: Hook<A, R, C>,
+  extension: ExtendedHook<A, R, C>
 ) => {
-  const extendableFunc = extendables.get(func) as Hook<[], ExtendedHook<A, R>>;
+  const extendableFunc = extendables.get(func) as Hook<
+    [],
+    ExtendedHook<A, R, C>,
+    C
+  >;
 
   if (!extendableFunc) {
     throw new Error("The hook does not support extensions");
@@ -300,9 +310,9 @@ export const util = <A extends unknown[], R>(
 /**
  * Creates an hook that memorizes the result in the unforkable context
  */
-export const buoy = <A extends unknown[], R>(
-  func: (context: Context, ...args: A) => R
-): ((context: Context, ...args: A) => R) => {
+export const buoy = <A extends unknown[], R, C extends Context>(
+  func: (context: C, ...args: A) => R
+): ((context: C, ...args: A) => R) => {
   return (context, ...args) => {
     if (isInherited(context, func)) {
       return init(context, func, ...args);
@@ -318,42 +328,42 @@ export const buoy = <A extends unknown[], R>(
  * - create a fork of a context
  * - get or initialize a contextual state
  */
-export const useContext = (context: Context = {}) => {
+export const useContext = <C extends Context>(context: C = {} as C) => {
   return {
     context,
 
     /**
      * Returns TRUE if the specified initializer is used in the context
      */
-    isUsed<A extends unknown[], R>(initializer: Hook<A, R>) {
+    isUsed<A extends unknown[], R>(initializer: Hook<A, R, C>) {
       return isUsed(context, initializer);
     },
 
     /**
      * Sets a new state into the context
      */
-    set<A extends unknown[], R>(initializer: Hook<A, R>, state: R) {
+    set<A extends unknown[], R>(initializer: Hook<A, R, C>, state: R) {
       return set(context, initializer, state);
     },
 
     /**
      * Initializes a new state into the context
      */
-    init<A extends unknown[], R>(initializer: Hook<A, R>, ...args: A) {
+    init<A extends unknown[], R>(initializer: Hook<A, R, C>, ...args: A) {
       return init(context, initializer, ...args);
     },
 
     /**
      * Uses or initializes a state in the context
      */
-    use<A extends unknown[], R>(initializer: Hook<A, R>, ...args: A) {
+    use<A extends unknown[], R>(initializer: Hook<A, R, C>, ...args: A) {
       return use(context, initializer, ...args);
     },
 
     /**
      * Gets a state that has already been initialized
      */
-    get<A extends unknown[], R>(initializer: Hook<A, R>) {
+    get<A extends unknown[], R>(initializer: Hook<A, R, C>) {
       return get(context, initializer);
     },
 
@@ -361,8 +371,8 @@ export const useContext = (context: Context = {}) => {
      * Extends a hook within a certain context
      */
     extend<A extends unknown[], R>(
-      initializer: Hook<A, R>,
-      extension: ExtendedHook<A, R>
+      initializer: Hook<A, R, C>,
+      extension: ExtendedHook<A, R, C>
     ) {
       return extend(context, initializer, extension);
     },
@@ -380,7 +390,7 @@ export const useContext = (context: Context = {}) => {
     /**
      * Checks if the state of an initializer is inherited form a parent context
      */
-    isInherited<A extends unknown[], R>(initializer: Hook<A, R>) {
+    isInherited<A extends unknown[], R>(initializer: Hook<A, R, C>) {
       return isInherited(context, initializer);
     },
   };
